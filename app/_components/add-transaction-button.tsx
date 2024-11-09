@@ -43,6 +43,8 @@ import {
   TRANSACTION_TYPE_OPTIONS,
 } from "../_constants/transactions";
 import { DatePicker } from "./ui/date-picker";
+import { addTransaction } from "../_actions/add-transaction";
+import { useState } from "react";
 
 const formSchema = z.object({
   name: z.string().trim().min(1, { message: "O nome é obrigatório" }),
@@ -62,6 +64,7 @@ const formSchema = z.object({
 type formSchema = z.infer<typeof formSchema>;
 
 const AddTransactionButton = () => {
+  const [dialogIsOpen, setDialogIsOpen] = useState(false);
   const form = useForm<formSchema>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -74,13 +77,27 @@ const AddTransactionButton = () => {
     },
   });
 
-  const onSubmit = (data: formSchema) => {
-    console.log(data);
+  const onSubmit = async (data: formSchema) => {
+    try {
+      const amountFormated = data.amount
+        .replace("R$ ", "")
+        .replace(".", "")
+        .replace(",", ".");
+      const amount = parseFloat(amountFormated);
+
+      await addTransaction({ ...data, amount });
+      setDialogIsOpen(false);
+      form.reset();
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
     <Dialog
+      open={dialogIsOpen}
       onOpenChange={(open) => {
+        setDialogIsOpen(open);
         if (!open) {
           form.reset();
         }
