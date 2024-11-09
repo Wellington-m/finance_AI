@@ -40,11 +40,13 @@ import {
 } from "@prisma/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { addTransaction } from "@/app/_actions/add-transaction";
+import { upsertTransaction } from "@/app/_actions/upsert-transaction";
 
 interface upsertTransactionDialogProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  transactionId?: string;
+  defaultValues?: FormSchema;
 }
 
 const formSchema = z.object({
@@ -67,10 +69,12 @@ type FormSchema = z.infer<typeof formSchema>;
 const UpsertTransactionDialog = ({
   isOpen,
   setIsOpen,
+  defaultValues,
+  transactionId,
 }: upsertTransactionDialogProps) => {
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: defaultValues ?? {
       amount: "",
       category: TransactionCategory.OTHER,
       date: new Date(),
@@ -88,13 +92,15 @@ const UpsertTransactionDialog = ({
         .replace(",", ".");
       const amount = parseFloat(amountFormated);
 
-      await addTransaction({ ...data, amount });
+      await upsertTransaction({ ...data, amount, id: transactionId });
       setIsOpen(false);
       form.reset();
     } catch (error) {
       console.error(error);
     }
   };
+
+  const isUpdate = Boolean(transactionId);
 
   return (
     <Dialog
@@ -109,7 +115,9 @@ const UpsertTransactionDialog = ({
       <DialogTrigger asChild></DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Adicionar transação</DialogTitle>
+          <DialogTitle>
+            {isUpdate ? "Atualizar" : "Adicionar"} transação
+          </DialogTitle>
           <DialogDescription>Insira as informações abaixo</DialogDescription>
         </DialogHeader>
 
@@ -249,7 +257,9 @@ const UpsertTransactionDialog = ({
                 </Button>
               </DialogClose>
 
-              <Button type="submit">Adicionar</Button>
+              <Button type="submit">
+                {isUpdate ? "Atualizar" : "Adicionar"}
+              </Button>
             </DialogFooter>
           </form>
         </Form>
